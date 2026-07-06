@@ -238,7 +238,8 @@ async function startMeter(){
     src.connect(analyser);
     timeData = new Uint8Array(analyser.fftSize);
     document.getElementById('meter').classList.remove('idle');
-  }catch(err){ analyser = null; }
+    return true;
+  }catch(err){ analyser = null; return false; }
 }
 function stopMeter(){
   try{ if(micStream) micStream.getTracks().forEach(t=>t.stop()); }catch(e){}
@@ -280,6 +281,9 @@ function updateLED(level01){
     el.classList.toggle('red',   active && el.dataset.tone==='red');
   }
 }
+
+// ---------- 状態（描画ループより前に宣言しておく） ----------
+let listening = false, interimActive = false, seedAlpha = 0;
 
 // ---------- 描画ループ ----------
 const easeOut = k => 1 - (1-k)*(1-k);
@@ -354,7 +358,7 @@ function showFatal(title, msg){
 }
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, listening = false, interimActive = false, seedAlpha = 0;
+let rec = null;
 
 if(!SR){
   showFatal('音声認識に非対応です',
@@ -375,8 +379,7 @@ if(!SR){
   rec.onerror = (e) => {
     if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
       stopListening();
-      showFatal('マイクが使えません',
-        'マイクの使用が許可されていません。ブラウザやOSの設定でマイクを許可してから、もう一度お試しください。');
+      setStatus('マイクが許可されていません。もう一度「話す」を押して「許可」してください', false);
     } else if(e.error === 'network'){
       setStatus('ネットワークエラー(音声認識はネット接続が必要です)', false);
     }
@@ -391,16 +394,29 @@ if(!SR){
   seedAlpha += (goal - seedAlpha) * 0.15;
 })();
 
-function startListening(){
-  if(!rec) return;
-  listening = true; interimActive = false; seedScale = 1;
+let starting = false;
+async function startListening(){
+  if(!rec || starting) return;
+  starting = true;
   micBtn.classList.add('on'); micLabel.textContent = '停止';
+  setStatus('マイクを準備中…', true);
+  seedScale = 1; interimActive = false;
+
+  // 先にマイク許可を取得（ここで許可アラートが出る）。取れてから認識を開始。
+  const ok = await startMeter();
+  if(!ok){
+    starting = false; listening = false;
+    micBtn.classList.remove('on'); micLabel.textContent = '話す';
+    setStatus('マイクを使用できませんでした。もう一度「話す」を押して「許可」してください', false);
+    return;
+  }
+  listening = true;
   setStatus('聞いています…', true);
-  startMeter();
   try { rec.start(); } catch(_){}
+  starting = false;
 }
 function stopListening(){
-  listening = false; interimActive = false;
+  listening = false; interimActive = false; starting = false;
   micBtn.classList.remove('on'); micLabel.textContent = '話す';
   setStatus('停止中。マイクを押すと再開します', false);
   stopMeter();
