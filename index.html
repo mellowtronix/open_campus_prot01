@@ -77,15 +77,13 @@
   </div>
 
   <div id="fatal"><div class="box"><h2 id="fatalTitle"></h2><p id="fatalMsg"></p></div></div>
+  <div id="ver" style="position:fixed;left:8px;bottom:6px;z-index:9;font:700 11px system-ui;color:#8a8578;opacity:.8;">build 4</div>
 
 <script>
 /* ============================================================
-   声の吹き出し — WebGL非依存版（2Dキャンバスで疑似3D）
-   ・LEDレベルメーター（マイク死活確認）
-   ・話している間：雲（たね）が声に反応して膨らむ・揺れる
-   ・言葉が確定：雲の位置から吹き出しが生まれて浮かび上がる
-   3D描画エンジンを使わないので、WebGLが無い/弱い端末でも動作する
+   声の吹き出し — WebGL非依存版（2Dキャンバスで疑似3D）  build 4
    ============================================================ */
+console.log('%c[声の吹き出し] build 4 が読み込まれました', 'color:#e5533d;font-weight:bold');
 
 // ---------- キャンバス ----------
 const canvas = document.getElementById('stage');
